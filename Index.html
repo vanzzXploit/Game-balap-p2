@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Balap Lari 2P – All Features</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to bottom, #81d4fa, #e1f5fe);
+      margin: 0; padding: 0;
+      text-align: center;
+    }
+    h1 { margin: 20px; color: #0d47a1; }
+    .controls { margin-bottom: 10px; }
+    .track { width: 90%; height: 80px; margin: 20px auto; background: #a5d6a7; border: 3px solid #2e7d32; border-radius: 40px; position: relative; overflow: hidden; }
+    .runner { position: absolute; top: 10px; width: 60px; height: 60px; background-size: cover; animation: run 0.3s steps(2) infinite; }
+    #runner1 { background-image: url('https://i.ibb.co/z6X2Tjb/red-runner.png'); }
+    #runner2 { background-image: url('https://i.ibb.co/0Vzcr9T/blue-runner.png'); top: 10px; }
+    @keyframes run { from { transform: translateY(0); } to { transform: translateY(2px); } }
+    .finish { position: absolute; right: 0; top: 0; width: 10px; height: 100%; background: repeating-linear-gradient(white 0px, white 10px, black 10px, black 20px); }
+    #info { font-size: 1.2rem; }
+    #winner { font-size: 1.8rem; color: #d32f2f; margin: 10px 0; }
+    .btn { padding: 10px 20px; font-size: 1rem; background: #29b6f6; color: #fff; border: none; border-radius: 8px; cursor: pointer; margin: 0 5px; }
+    .btn:disabled { background: #90caf9; cursor: default; }
+  </style>
+</head>
+<body>
+  <h1>🏃‍♂️ Balap Lari 2P – Full Mode</h1>
+  <div class="controls">
+    <button class="btn" id="startBtn">Start</button>
+    <button class="btn" id="resetBtn" disabled>Reset Game</button>
+  </div>
+  <div id="info">Tekan <b>A</b> untuk Player 1 & <b>L</b> untuk Player 2</div>
+  <div id="timer">Waktu: 0.00 detik</div>
+  
+  <div class="track" id="track1">
+    <div class="runner" id="runner1"></div>
+    <div class="finish"></div>
+  </div>
+  <div class="track" id="track2">
+    <div class="runner" id="runner2"></div>
+    <div class="finish"></div>
+  </div>
+
+  <div id="winner"></div>
+  <div id="scoreboard">Skor — P1: 0 | P2: 0 | Ronde: 0 / 3</div>
+  <script>
+    // Element
+    const startBtn = document.getElementById('startBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const runner1 = document.getElementById('runner1');
+    const runner2 = document.getElementById('runner2');
+    const timerEl = document.getElementById('timer');
+    const winnerEl = document.getElementById('winner');
+    const scoreEl = document.getElementById('scoreboard');
+
+    // Audio
+    const music = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3');
+    const stepSound = new Audio('https://actions.google.com/sounds/v1/human_voices/footstep_walk.ogg');
+    const winSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
+
+    let pos1 = 0, pos2 = 0, gameOver = true;
+    let startTime, timerInterval;
+    let score1 = 0, score2 = 0, round = 0, maxRound = 3;
+    const finishLine = document.getElementById('track1').offsetWidth - 70;
+
+    function startGame() {
+      round++;
+      pos1 = pos2 = 0;
+      runner1.style.left = runner2.style.left = '0px';
+      winnerEl.textContent = '';
+      gameOver = false;
+      startTime = performance.now();
+      timerInterval = setInterval(updateTimer, 50);
+      startBtn.disabled = true;
+      resetBtn.disabled = false;
+      music.currentTime = 0; music.play();
+    }
+
+    function updateTimer() {
+      const elapsed = (performance.now() - startTime) / 1000;
+      timerEl.textContent = `Waktu: ${elapsed.toFixed(2)} detik`;
+    }
+
+    function endGame(player) {
+      gameOver = true;
+      clearInterval(timerInterval);
+      music.pause();
+      winSound.play();
+      if (player === 1) score1++; else score2++;
+      winnerEl.textContent = `🏆 Player ${player} Menang!`;
+      scoreEl.textContent = `Skor — P1: ${score1} | P2: ${score2} | Ronde: ${round} / ${maxRound}`;
+      startBtn.disabled = round >= maxRound;
+      if (round >= maxRound) startBtn.textContent = 'Game Selesai';
+      else startBtn.textContent = 'Ronde Selanjutnya';
+    }
+
+    function resetGame() {
+      clearInterval(timerInterval);
+      music.pause(); winSound.pause();
+      pos1 = pos2 = score1 = score2 = round = 0;
+      runner1.style.left = runner2.style.left = '0px';
+      timerEl.textContent = 'Waktu: 0.00 detik';
+      scoreEl.textContent = `Skor — P1: 0 | P2: 0 | Ronde: 0 / ${maxRound}`;
+      winnerEl.textContent = '';
+      startBtn.textContent = 'Start';
+      gameOver = true;
+      startBtn.disabled = false;
+    }
+
+    function moveRunner(player) {
+      if (gameOver) return;
+      stepSound.currentTime = 0; stepSound.play();
+      if (player === 1) {
+        pos1 += 10; runner1.style.left = pos1 + 'px';
+        if (pos1 >= finishLine) endGame(1);
+      } else {
+        pos2 += 10; runner2.style.left = pos2 + 'px';
+        if (pos2 >= finishLine) endGame(2);
+      }
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.key.toLowerCase() === 'a') moveRunner(1);
+      if (e.key.toLowerCase() === 'l') moveRunner(2);
+    });
+
+    startBtn.addEventListener('click', startGame);
+    resetBtn.addEventListener('click', resetGame);
+  </script>
+</body>
+</html>
